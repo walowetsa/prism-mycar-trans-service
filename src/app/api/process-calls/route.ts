@@ -576,7 +576,7 @@ async function transcribeAudio(
       body: JSON.stringify({
         audio_url: uploadUrl,
         speech_model: "slam-1",
-        word_boost: [
+        keyterm_prompt: [
           'My Car',
           "Mycar",
           "Tyre",
