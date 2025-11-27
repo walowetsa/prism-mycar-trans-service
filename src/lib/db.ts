@@ -1,4 +1,4 @@
-import { Pool } from "pg";
+import { Pool } from 'pg';
 
 const pool = new Pool({
   host: process.env.DB_HOST,
@@ -23,30 +23,29 @@ export async function getContactLogs(dateRange?: DateRange) {
       // Use provided date range
       query = `
         SELECT * FROM reporting.contact_log 
-WHERE agent_username IS NOT NULL
-AND disposition_title IS NOT NULL
-AND recording_location LIKE '%.mp3%' 
-AND initiation_timestamp >= '2025-11-28 00:00:00+00'
-AND initiation_timestamp < '2025-11-29 00:00:00+00'
-ORDER BY initiation_timestamp DESC
+        WHERE agent_username IS NOT NULL
+        AND disposition_title IS NOT NULL
+        AND recording_location LIKE '%.mp3%' 
+        AND initiation_timestamp >= $1 
+        AND initiation_timestamp <= $2
+        ORDER BY initiation_timestamp DESC
       `;
       params = [dateRange.start, dateRange.end];
     } else {
       // No date range provided
-      query = `SELECT * FROM reporting.contact_log 
-WHERE agent_username IS NOT NULL
-AND disposition_title IS NOT NULL
-AND recording_location LIKE '%.mp3%' 
-AND initiation_timestamp >= '2025-11-28 00:00:00+00'
-AND initiation_timestamp < '2025-11-29 00:00:00+00'
-ORDER BY initiation_timestamp DESC
+      query = `
+        SELECT * FROM reporting.contact_log 
+        WHERE agent_username IS NOT NULL
+        AND disposition_title IS NOT NULL
+        AND recording_location LIKE '%.mp3%' 
+        ORDER BY initiation_timestamp DESC
       `;
     }
 
     const result = await pool.query(query, params);
     return result.rows;
   } catch (error) {
-    console.error("Database query error:", error);
+    console.error('Database query error:', error);
     throw error;
   }
 }
@@ -59,13 +58,11 @@ export async function getContactLogsByDateRange() {
        WHERE agent_username IS NOT NULL
        AND disposition_title IS NOT NULL
         AND recording_location LIKE '%.mp3%' 
-AND initiation_timestamp >= '2025-11-28 00:00:00+00'
-AND initiation_timestamp < '2025-11-29 00:00:00+00'
        ORDER BY initiation_timestamp DESC`
     );
     return result.rows;
   } catch (error) {
-    console.error("Database query error:", error);
+    console.error('Database query error:', error);
     throw error;
   }
 }

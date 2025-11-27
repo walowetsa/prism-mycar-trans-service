@@ -270,8 +270,8 @@ const DateSelector = ({
               type="date"
               value={customStartDate}
               onChange={(e) => setCustomStartDate(e.target.value)}
-              className="w-full px-3 py-2 bg-bg-primary border border-border rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#4ecca3] focus:border-transparent"
-              max={formatDateForInput(new Date())} // Don't allow future dates
+              // className="w-full px-3 py-2 bg-bg-primary border border-border rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#4ecca3] focus:border-transparent"
+              // max={formatDateForInput(new Date())} // Don't allow future dates
             />
           </div>
           
@@ -284,7 +284,7 @@ const DateSelector = ({
               value={customEndDate}
               onChange={(e) => setCustomEndDate(e.target.value)}
               className="w-full px-3 py-2 bg-bg-primary border border-border rounded-md text-white focus:outline-none focus:ring-2 focus:ring-[#4ecca3] focus:border-transparent"
-              min={customStartDate} // End date must be after start date
+              // min={customStartDate} // End date must be after start date
               // max={formatDateForInput(new Date())} // Don't allow future dates
             />
           </div>
