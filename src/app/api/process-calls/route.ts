@@ -128,7 +128,7 @@ async function getContactLogs(dateRange?: DateRange) {
 async function checkCallExistsInSupabase(contactId: string): Promise<boolean> {
   try {
     const { data, error } = await supabase
-      .from("call_records")
+      .from("call_records_bfs")
       .select("contact_id")
       .eq("contact_id", contactId)
       .single();
@@ -170,7 +170,7 @@ async function enhanceCallLogsWithSupabaseStatus(
 
       try {
         const { data: batchRecords, error } = await supabase
-          .from("call_records")
+          .from("call_records_bfs")
           .select("contact_id")
           .in("contact_id", batch);
 
@@ -841,7 +841,7 @@ async function saveTranscriptionToSupabase(
 
     // does record exist
     const { data: existingRecord, error: checkError } = await supabase
-      .from("call_records")
+      .from("call_records_bfs")
       .select("contact_id")
       .eq("contact_id", payload.contact_id)
       .single();
@@ -852,7 +852,7 @@ async function saveTranscriptionToSupabase(
 
     if (existingRecord) {
       const { error } = await supabase
-        .from("call_records")
+        .from("call_records_bfs")
         .update(payload)
         .eq("contact_id", payload.contact_id);
 
@@ -862,7 +862,7 @@ async function saveTranscriptionToSupabase(
 
       console.log("Successfully updated existing record");
     } else {
-      const { error } = await supabase.from("call_records").insert([payload]);
+      const { error } = await supabase.from("call_records_bfs").insert([payload]);
 
       if (error) {
         throw new Error(`Failed to insert record: ${error.message}`);
