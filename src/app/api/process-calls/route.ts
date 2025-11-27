@@ -577,7 +577,7 @@ async function transcribeAudio(
         audio_url: uploadUrl,
         speech_model: "slam-1",
         keyterms_prompt: [
-          'My Car',
+          "My Car",
           "Mycar",
           "Tyre",
           "And",
@@ -697,6 +697,23 @@ async function transcribeAudio(
           "torque",
           "hydraulic",
           "pneumatic",
+          "195/65R15",
+          "205/55R16",
+          "215/60R16",
+          "215/55R17",
+          "225/45R17",
+          "195/60R14",
+          "255/45R19",
+          "245/40R20",
+          "285/35R20",
+          "195/65/15",
+          "205/55/16",
+          "215/60/16",
+          "215/55/17",
+          "225/45/17",
+          "195/60/14",
+          "245/40/20",
+          "285/35/20",
         ],
         speaker_labels: true,
         speakers_expected: speakerCount,
@@ -862,7 +879,9 @@ async function saveTranscriptionToSupabase(
 
       console.log("Successfully updated existing record");
     } else {
-      const { error } = await supabase.from("call_records_bfs").insert([payload]);
+      const { error } = await supabase
+        .from("call_records_bfs")
+        .insert([payload]);
 
       if (error) {
         throw new Error(`Failed to insert record: ${error.message}`);
