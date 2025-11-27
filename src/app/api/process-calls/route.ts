@@ -102,8 +102,8 @@ async function getContactLogs(dateRange?: DateRange) {
         WHERE agent_username IS NOT NULL
         AND disposition_title IS NOT NULL
         AND recording_location LIKE '%.mp3%' 
-AND initiation_timestamp >= '2025-11-28 00:00:00+00'
-AND initiation_timestamp < '2025-11-29 00:00:00+00'
+        AND initiation_timestamp >= $1 
+        AND initiation_timestamp <= $2
         ORDER BY initiation_timestamp DESC
       `;
       params = [dateRange.start, dateRange.end];
@@ -113,8 +113,8 @@ AND initiation_timestamp < '2025-11-29 00:00:00+00'
         WHERE agent_username IS NOT NULL
         AND disposition_title IS NOT NULL
         AND recording_location LIKE '%.mp3%' 
-AND initiation_timestamp >= '2025-11-28 00:00:00+00'
-AND initiation_timestamp < '2025-11-29 00:00:00+00'
+        AND initiation_timestamp >= '2025-11-28 00:00:00+00'
+        AND initiation_timestamp < '2025-11-29 00:00:00+00'
         ORDER BY initiation_timestamp DESC
       `;
     }
