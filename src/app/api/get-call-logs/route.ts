@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
         );
       }
       
-      dateRange = { start, end };
+      dateRange = { start: '2025-11-28T00:00:00.000Z', end: '2025-11-28T23:59:59.999Z' };
     }
 
     // Get the contact logs with optional date filtering
@@ -48,8 +48,8 @@ export async function GET(request: NextRequest) {
       data: logs,
       count: logs.length,
       dateRange: dateRange ? {
-        start: dateRange.start.toISOString(),
-        end: dateRange.end.toISOString()
+        start: '2025-11-28T00:00:00.000Z',
+        end: '2025-11-28T23:59:59.999Z'
       } : null,
       supabaseChecked: checkSupabase
     });
@@ -107,8 +107,8 @@ export async function POST(request: NextRequest) {
       data: logs,
       count: logs.length,
       dateRange: dateRange ? {
-        start: dateRange.start.toISOString(),
-        end: dateRange.end.toISOString()
+        start: '2025-11-28T00:00:00.000Z',
+        end: '2025-11-28T23:59:59.999Z'
       } : null,
       supabaseChecked: checkSupabase
     });
