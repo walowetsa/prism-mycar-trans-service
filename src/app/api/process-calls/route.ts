@@ -100,15 +100,17 @@ async function getContactLogs(dateRange?: DateRange) {
       query = `WITH filtered AS (
   SELECT
     *,
-    DATE(initiation_timestamp AT TIME ZONE 'Australia/Melbourne') AS melb_date,
+    DATE(initiation_timestamp AT TIME ZONE 'Australia/Melbourne')     AS melb_date,
     ROW_NUMBER() OVER (
       PARTITION BY DATE(initiation_timestamp AT TIME ZONE 'Australia/Melbourne')
       ORDER BY RANDOM()
-    ) AS rn
+    )                                                                  AS rn
   FROM reporting.contact_log
   WHERE agent_username IS NOT NULL
     AND disposition_title IS NOT NULL
     AND recording_location LIKE '%.mp3%'
+    AND initiation_timestamp >= $1
+    AND initiation_timestamp <= $2
     AND EXTRACT(HOUR FROM initiation_timestamp AT TIME ZONE 'Australia/Melbourne') >= 12
     AND EXTRACT(HOUR FROM initiation_timestamp AT TIME ZONE 'Australia/Melbourne') < 14
 ),
@@ -121,7 +123,8 @@ FROM filtered f
 CROSS JOIN totals t
 WHERE f.rn <= CEIL(2000.0 / NULLIF(t.total_days, 0))
 ORDER BY f.initiation_timestamp DESC
-LIMIT 2000;`;
+LIMIT 2000;
+      `;
       params = [dateRange.start, dateRange.end];
     } else {
       query = `WITH filtered AS (
@@ -148,7 +151,8 @@ FROM filtered f
 CROSS JOIN totals t
 WHERE f.rn <= CEIL(2000.0 / NULLIF(t.total_days, 0))
 ORDER BY f.initiation_timestamp DESC
-LIMIT 2000;`;
+LIMIT 2000;
+      `;
     }
 
     const result = await pool.query(query, params);
@@ -914,7 +918,7 @@ async function saveTranscriptionToSupabase(
       console.log("Successfully updated existing record");
     } else {
       const { error } = await supabase
-        .from("call_records_april")
+        .from("call_records_bfs")
         .insert([payload]);
 
       if (error) {
