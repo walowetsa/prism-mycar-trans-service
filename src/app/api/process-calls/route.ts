@@ -617,6 +617,51 @@ async function performTopicCategorization(transcriptData: any): Promise<{
   }
 }
 
+async function generateSummaryWithLLMGateway(
+  transcriptText: string
+): Promise<string | null> {
+  const apiKey = process.env.ASSEMBLYAI_API_KEY!;
+
+  console.log("Generating summary via AssemblyAI LLM Gateway...");
+
+  try {
+    const response = await fetch(
+      "https://llm-gateway.assemblyai.com/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: apiKey,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          messages: [
+            {
+              role: "user",
+              content: `Summarize this conversation between multiple speakers. Include who said what and the key points each speaker made.\n\nTranscript: ${transcriptText}`,
+            },
+          ],
+          max_tokens: 1000,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`LLM Gateway summary failed: ${response.status} - ${errorText}`);
+      return null;
+    }
+
+    const data = await response.json();
+    const summary = data?.choices?.[0]?.message?.content ?? null;
+    console.log("Summary generated successfully via LLM Gateway");
+    return summary;
+  } catch (error) {
+    console.error("Error generating summary via LLM Gateway:", error);
+    return null;
+  }
+}
+
 async function transcribeAudio(
   uploadUrl: string,
   speakerCount: number = 2
@@ -777,9 +822,6 @@ async function transcribeAudio(
         ],
         speaker_labels: true,
         speakers_expected: speakerCount,
-        summarization: true,
-        summary_model: "conversational",
-        summary_type: "paragraph",
         entity_detection: true,
         sentiment_analysis: true,
         filter_profanity: false,
@@ -850,6 +892,11 @@ async function transcribeAudio(
   }
 
   console.log("Transcription completed successfully");
+
+  // Generate summary via LLM Gateway (replaces deprecated summarization params)
+  if (transcript.text) {
+    transcript.summary = await generateSummaryWithLLMGateway(transcript.text);
+  }
 
   if (transcript.utterances) {
     transcript.utterances = transcript.utterances.map((utterance: any) => ({
