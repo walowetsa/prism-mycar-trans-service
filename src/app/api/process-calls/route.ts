@@ -1397,9 +1397,20 @@ export async function POST(request: NextRequest) {
 
     console.log(`🚀 Processing specific calls: ${contactIds.join(", ")}`);
 
-    const logs = await getContactLogs();
+    // Coerce all incoming contactIds to strings for safe comparison regardless
+    // of whether the DB returns contact_id as a number or string.
+    const contactIdStrings = contactIds.map(String);
+
+    // getContactLogs() without a dateRange still applies the 12:00-14:00
+    // Melbourne time filter, which silently excludes calls outside that window.
+    // Pass a wide open dateRange so all dates are searched.
+    const wideRange: DateRange = {
+      start: new Date("2000-01-01T00:00:00Z"),
+      end: new Date("2099-12-31T23:59:59Z"),
+    };
+    const logs = await getContactLogs(wideRange);
     const targetLogs = logs.filter((log) =>
-      contactIds.includes(log.contact_id)
+      contactIdStrings.includes(String(log.contact_id))
     );
 
     if (targetLogs.length === 0) {
