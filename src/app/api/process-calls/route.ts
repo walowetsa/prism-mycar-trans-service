@@ -635,7 +635,7 @@ async function transcribeAudio(
       },
       body: JSON.stringify({
         audio_url: uploadUrl,
-        speech_model: "universal-3-pro",
+        speech_models: ["universal-3-pro"],
         keyterms_prompt: [
           "My Car",
           "Mycar",
