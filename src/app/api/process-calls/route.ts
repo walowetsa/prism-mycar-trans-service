@@ -96,62 +96,84 @@ async function getContactLogs(dateRange?: DateRange) {
     let query: string;
     let params: any[] = [];
 
+    // Common CTE logic:
+    //  1. time_filtered  – applies base filters + restricts to 12:00–14:00 Melbourne time
+    //  2. date_count     – counts how many distinct calendar dates are in the filtered set
+    //  3. ranked         – assigns a per-date row number so we can slice evenly
+    // The outer SELECT keeps at most CEIL(2000 / num_dates) rows per date, then
+    // applies a final LIMIT 2000 safety cap.
+    //
+    // Timezone note: initiation_timestamp is stored as UTC (offset +00).
+    // Perth (AWST) is UTC+8 — used by the source system — but the filter window
+    // is expressed in Melbourne time (Australia/Melbourne = AEST UTC+10 / AEDT UTC+11),
+    // so we convert with AT TIME ZONE 'Australia/Melbourne'.
+
     if (dateRange) {
-      query = `WITH filtered AS (
-  SELECT
-    *,
-    DATE(initiation_timestamp AT TIME ZONE 'Australia/Melbourne')     AS melb_date,
-    ROW_NUMBER() OVER (
-      PARTITION BY DATE(initiation_timestamp AT TIME ZONE 'Australia/Melbourne')
-      ORDER BY RANDOM()
-    )                                                                  AS rn
-  FROM reporting.contact_log
-  WHERE agent_username IS NOT NULL
-    AND disposition_title IS NOT NULL
-    AND recording_location LIKE '%.mp3%'
-    AND initiation_timestamp >= $1
-    AND initiation_timestamp <= $2
-    AND EXTRACT(HOUR FROM initiation_timestamp AT TIME ZONE 'Australia/Melbourne') >= 12
-    AND EXTRACT(HOUR FROM initiation_timestamp AT TIME ZONE 'Australia/Melbourne') < 14
-),
-totals AS (
-  SELECT COUNT(DISTINCT melb_date) AS total_days
-  FROM filtered
-)
-SELECT f.*
-FROM filtered f
-CROSS JOIN totals t
-WHERE f.rn <= CEIL(2000.0 / NULLIF(t.total_days, 0))
-ORDER BY f.initiation_timestamp DESC
-LIMIT 2000;
+      query = `
+        WITH time_filtered AS (
+          SELECT
+            *,
+            DATE(initiation_timestamp AT TIME ZONE 'Australia/Melbourne') AS mel_date
+          FROM reporting.contact_log
+          WHERE agent_username IS NOT NULL
+            AND disposition_title IS NOT NULL
+            AND recording_location LIKE '%.mp3%'
+            AND initiation_timestamp >= $1
+            AND initiation_timestamp <= $2
+            AND (initiation_timestamp AT TIME ZONE 'Australia/Melbourne')::time >= '12:00:00'
+            AND (initiation_timestamp AT TIME ZONE 'Australia/Melbourne')::time <  '14:00:00'
+        ),
+        date_count AS (
+          SELECT COUNT(DISTINCT mel_date) AS num_dates FROM time_filtered
+        ),
+        ranked AS (
+          SELECT
+            tf.*,
+            ROW_NUMBER() OVER (
+              PARTITION BY tf.mel_date
+              ORDER BY tf.initiation_timestamp DESC
+            ) AS rn,
+            dc.num_dates
+          FROM time_filtered tf
+          CROSS JOIN date_count dc
+        )
+        SELECT * FROM ranked
+        WHERE rn <= CEIL(2000.0 / GREATEST(num_dates, 1))
+        ORDER BY initiation_timestamp DESC
+        LIMIT 2000
       `;
       params = [dateRange.start, dateRange.end];
     } else {
-      query = `WITH filtered AS (
-  SELECT
-    *,
-    DATE(initiation_timestamp AT TIME ZONE 'Australia/Melbourne') AS melb_date,
-    ROW_NUMBER() OVER (
-      PARTITION BY DATE(initiation_timestamp AT TIME ZONE 'Australia/Melbourne')
-      ORDER BY RANDOM()
-    ) AS rn
-  FROM reporting.contact_log
-  WHERE agent_username IS NOT NULL
-    AND disposition_title IS NOT NULL
-    AND recording_location LIKE '%.mp3%'
-    AND EXTRACT(HOUR FROM initiation_timestamp AT TIME ZONE 'Australia/Melbourne') >= 12
-    AND EXTRACT(HOUR FROM initiation_timestamp AT TIME ZONE 'Australia/Melbourne') < 14
-),
-totals AS (
-  SELECT COUNT(DISTINCT melb_date) AS total_days
-  FROM filtered
-)
-SELECT f.*
-FROM filtered f
-CROSS JOIN totals t
-WHERE f.rn <= CEIL(2000.0 / NULLIF(t.total_days, 0))
-ORDER BY f.initiation_timestamp DESC
-LIMIT 2000;
+      query = `
+        WITH time_filtered AS (
+          SELECT
+            *,
+            DATE(initiation_timestamp AT TIME ZONE 'Australia/Melbourne') AS mel_date
+          FROM reporting.contact_log
+          WHERE agent_username IS NOT NULL
+            AND disposition_title IS NOT NULL
+            AND recording_location LIKE '%.mp3%'
+            AND (initiation_timestamp AT TIME ZONE 'Australia/Melbourne')::time >= '12:00:00'
+            AND (initiation_timestamp AT TIME ZONE 'Australia/Melbourne')::time <  '14:00:00'
+        ),
+        date_count AS (
+          SELECT COUNT(DISTINCT mel_date) AS num_dates FROM time_filtered
+        ),
+        ranked AS (
+          SELECT
+            tf.*,
+            ROW_NUMBER() OVER (
+              PARTITION BY tf.mel_date
+              ORDER BY tf.initiation_timestamp DESC
+            ) AS rn,
+            dc.num_dates
+          FROM time_filtered tf
+          CROSS JOIN date_count dc
+        )
+        SELECT * FROM ranked
+        WHERE rn <= CEIL(2000.0 / GREATEST(num_dates, 1))
+        ORDER BY initiation_timestamp DESC
+        LIMIT 2000
       `;
     }
 
@@ -918,7 +940,7 @@ async function saveTranscriptionToSupabase(
       console.log("Successfully updated existing record");
     } else {
       const { error } = await supabase
-        .from("call_records_bfs")
+        .from("call_records_april")
         .insert([payload]);
 
       if (error) {
