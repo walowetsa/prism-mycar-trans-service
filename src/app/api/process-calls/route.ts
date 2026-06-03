@@ -1405,8 +1405,8 @@ export async function POST(request: NextRequest) {
     // Melbourne time filter, which silently excludes calls outside that window.
     // Pass a wide open dateRange so all dates are searched.
     const wideRange: DateRange = {
-      start: new Date("2026-04-01T00:00:00Z"),
-      end: new Date("2026-04-30T23:59:59Z"),
+      start: new Date("2026-05-01T00:00:00Z"),
+      end: new Date("2026-05-31T23:59:59Z"),
     };
     const logs = await getContactLogs(wideRange);
     const targetLogs = logs.filter((log) =>
